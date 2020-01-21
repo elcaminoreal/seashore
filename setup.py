@@ -17,7 +17,7 @@ setuptools.setup(
     license='MIT',
     install_requires=[
         'incremental',
-        'attrs',
+        'attrs>=19.3.0',
         'singledispatch',
     ],
     package_dir={"": "src"},
