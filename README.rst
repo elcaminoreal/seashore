@@ -25,6 +25,14 @@ License
 Seashore is (C) 2017-2020 Contributors, and licensed under the MIT license.
 See the LICENSE file for more details.
 
+History
+-------
+
+Seashore was originally released by Shopkick.
+Since then,
+it has been forked and is part of the El Camino Real
+suit.
+
 Contributors
 ------------
 
