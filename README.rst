@@ -22,7 +22,7 @@ these tools.
 License
 -------
 
-Seashore is (C) Shopkick, and licensed under the MIT license.
+Seashore is (C) 2017-2020 Contributors, and licensed under the MIT license.
 See the LICENSE file for more details.
 
 Contributors
