@@ -1,5 +1,3 @@
-# Copyright (c) Shopkick 2017
-# See LICENSE for details.
 """
 Provides seashore version information.
 """
@@ -9,5 +7,5 @@ Provides seashore version information.
 
 from incremental import Version
 
-__version__ = Version('seashore', 17, 6, 0)
+__version__ = Version('seashore', 20, 6, 0)
 __all__ = ["__version__"]
