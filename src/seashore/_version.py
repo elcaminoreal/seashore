@@ -1,3 +1,5 @@
+# Copyright (c) Contributors 2020
+# See License for details
 """
 Provides seashore version information.
 """
