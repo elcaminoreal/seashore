@@ -1,5 +1,32 @@
+# Copyright (c) Shopkick
+# Copyright (c) Moshe Zadka
+[build-system]
+requires = ["setuptools", "autocalver"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seashore"
+authors = [ {name="Moshe Zadka", email="moshez@devskillup.com"} ]
+dependencies = ["attrs"]
+description = "A collection of shell abstractions"
+readme = "README.rst"
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/elcaminoreal/seashore"
+
+[project.optional-dependencies]
+tests = ["virtue", "pyhamcrest", "coverage"]
+mypy = ["mypy"]
+lint = ["flake8", "black"]
+docs = ["sphinx"]
+
+[project.license]
+text = """
+The MIT License
+
 Copyright (c) Shopkick 2017
-Copyright (c) Contributors 2019-2020
+Copyright (c) Contributors 2019-2023
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -18,3 +45,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+"""

@@ -1,5 +1,4 @@
 /build
-/.cache
-*.pyc
+/dist
 *.egg-info
 __pycache__
