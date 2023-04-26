@@ -1,5 +1,3 @@
-# Copyright (c) Shopkick 2017
-# See LICENSE for details.
 """
 Executor
 --------
@@ -8,32 +6,31 @@ Construct command-line lists.
 
 :const:`NO_VALUE` -- indicate an option with no value (a boolean option)
 """
+from __future__ import annotations
 import functools
+from typing import Any
 
-import six
-
-import singledispatch
-
-import attr
+import attrs
 
 NO_VALUE = object()
 
-@attr.s(frozen=True)
-class Eq(object):
-    """Wrap a string to indicate = option
+@attrs.frozen()
+class Eq:
+    """
+    Wrap a string to indicate = option
 
     Wrap a string to indicate that the option
-    *has* to be given as '--name=value'
+    *has* to be given as ``--name=value``
     rather than the usually equivalent and
-    more automation-friendly '--name value'
+    more automation-friendly ``--name value``
 
     :code:`git show --format`, I'm looking
     at you.
     """
 
-    content = attr.ib()
+    content: str
 
-@singledispatch.singledispatch
+@functools.singledispatch
 def _keyword_arguments(_value, key):
     yield key
 
@@ -63,7 +60,7 @@ def _keyword_arguments_dict(value, key):
         yield key
         yield '{}={}'.format(in_k, thing)
 
-def cmd(binary, subcommand, *args, **kwargs):
+def cmd(binary, *args, **kwargs):
     """
     Construct a command line for a "modern UNIX" command.
 
@@ -71,7 +68,6 @@ def cmd(binary, subcommand, *args, **kwargs):
     Examples include :code:`apt-get` or :code:`git`.
 
     :param binary: the name of the command
-    :param subcommand: the subcommand used
     :param args: positional arguments (put last)
     :param kwargs: options
     :returns: list of arguments that is suitable to be passed to :code:`subprocess.Popen`
@@ -86,19 +82,19 @@ def cmd(binary, subcommand, *args, **kwargs):
     * If the value is a dict, the option will be repeated multiple times, and
       its values will be :code:`<KEY>=<VALUE>`.
     """
-    ret = [binary, subcommand]
+    ret = [binary]
+    ret.extend(args)
     for key, value in kwargs.items():
         key = '--' + key.replace('_', '-')
         ret.extend(_keyword_arguments(value, key))
-    ret.extend(args)
     return ret
 
-@attr.s(frozen=True)
-class _PreparedCommand(object):
-
-    _cmd = attr.ib()
-    _shell = attr.ib()
-
+@attr.frozen()
+class _PreparedCommand:
+    _args: Sequence[str]
+    _shell: Any
+    
+    def __call__(
     def batch(self, *args, **kwargs):
         """Run the shell's batch"""
         return self._shell.batch(self._cmd, *args, **kwargs)
@@ -116,8 +112,8 @@ class _PreparedCommand(object):
         return self._shell.popen(self._cmd, *args, **kwargs)
 
 
-@attr.s(frozen=True)
-class Command(object):
+@attr.frozen()
+class Command:
 
     """
     A command is something that can be bound to an executor.
@@ -125,7 +121,7 @@ class Command(object):
 
     :param name: the name of a 'Modern UNIX' command (i.e., something with subcommands).
     """
-    _name = attr.ib()
+    _name: str
 
     def bind(self, executor, _dummy=None):
         """
@@ -139,12 +135,11 @@ class Command(object):
 
     __get__ = bind
 
-@attr.s(frozen=True)
-class _ExecutoredCommand(object):
+@attr.frozen()
+class _ExecutoredCommand:
 
-    _executor = attr.ib()
-
-    _name = attr.ib()
+    _executor: str
+    _name: str
 
     def __call__(self, *args, **kwargs):
         return self._executor.prepare(self._name, *args, **kwargs)
@@ -153,8 +148,8 @@ class _ExecutoredCommand(object):
         subcommand = subcommand.rstrip('_').replace('_', '-')
         return functools.partial(self._executor.prepare, self._name, subcommand)
 
-@attr.s(frozen=True)
-class Executor(object):
+@attr.frozen()
+class Executor:
 
     """
     Executes commands.
@@ -170,15 +165,14 @@ class Executor(object):
     :code:`docker`, :code:`docker_machine`.
     """
 
-    _shell = attr.ib()
-    _pypi = attr.ib(default=None)
-    _commands = attr.ib(default=attr.Factory(set), converter=set)
+    _shell: Any
+    _pypi: Optional[str] = attrs.field(default=None)
+    _commands: attrs.field(factory=set, converter=set)
 
     git = Command('git')
     pip = Command('pip')
     conda = Command('conda')
     docker = Command('docker')
-    docker_machine = Command('docker-machine')
 
     def __getattr__(self, name):
         if name.startswith('__') and name.endswith('__'):
@@ -196,19 +190,6 @@ class Executor(object):
         """
         self._commands.add(name)
 
-    def prepare(self, command, subcommand, *args, **kwargs):
-        """
-        Prepare a command (inspired by SQL statement preparation).
-
-        :param command: name of command (e.g., :code:`apt-get`)
-        :param subcommand: name of sub-command (e.g., :code:`install`)
-        :param args: positional arguments
-        :param kwargs: option arguments
-        :returns: something that supports batch/interactive/popen
-        """
-        return _PreparedCommand(cmd=cmd(command, subcommand, *args, **kwargs),
-                                shell=self._shell.clone())
-
     def command(self, args):
         """
         Prepare a command from a raw argument list.
@@ -217,23 +198,6 @@ class Executor(object):
         :returns: something that supports batch/interactive/popen
         """
         return _PreparedCommand(args, shell=self._shell.clone())
-
-    def in_docker_machine(self, machine):
-        """
-        Return an executor where all docker commands would point at a specific Docker machine.
-
-        :param machine: name of machine
-        :returns: a new executor
-        """
-        new_shell = self._shell.clone()
-        output, _ignored = self.docker_machine.env(machine, shell='cmd').batch()
-        for line in output.splitlines():
-            directive, args = line.split(None, 1)
-            if directive != 'SET':
-                continue
-            key, value = args.split('=', 1)
-            new_shell.setenv(key, value)
-        return attr.assoc(self, _shell=new_shell)
 
     def patch_env(self, **kwargs):
         """
@@ -265,16 +229,14 @@ class Executor(object):
         :param envpath: path to virtual environment
         :returns: a new executor
         """
-        new_shell = self._shell.clone()
-        new_shell.setenv('VIRTUAL_ENV', envpath)
-        new_shell.setenv('PYTHONHOME', None)
+        env = dict(VIRTUAL_ENV=envpath, PYTHONHOME=None)
+        binpath = envpath + "/bin"
         try:
-            old_path = new_shell.getenv('PATH')
-            new_path = envpath + '/bin' + ':' + old_path
+            base_path = ":" + new_shell.getenv('PATH')
         except KeyError:
-            new_path = envpath + '/bin'
-        new_shell.setenv('PATH', new_path)
-        return attr.assoc(self, _shell=new_shell)
+            base_path = ""
+        env.update(PATH=base_path + bin_path)
+        return self.patch_env(**env)
 
     def pip_install(self, pkg_ids, index_url=None):
         """
@@ -284,13 +246,11 @@ class Executor(object):
         :param index_url: (optional) an extra PyPI-compatible index
         :raises: :code:`ProcessError` if the installation fails
         """
+        kwargs = {}
         if index_url is None:
             index_url = self._pypi
         if index_url is not None:
-            trusted_host = six.moves.urllib.parse.urlparse(index_url).netloc
-            kwargs = dict(extra_index_url=index_url, trusted_host=trusted_host)
-        else:
-            kwargs = {}
+            kwargs.update(extra_index_url=index_url)
         mycmd = self.pip.install(*pkg_ids, **kwargs)
         return mycmd.batch()
 
@@ -302,6 +262,11 @@ class Executor(object):
         :param channels: (optional) a list of channels to install from
         :raises: :code:`ProcessError` if the installation fails
         """
-        mycmd = self.conda.install(quiet=NO_VALUE, yes=NO_VALUE, show_channel_urls=NO_VALUE,
-                                   channel=(channels or []), *pkg_ids)
+        mycmd = self.conda.install(
+            quiet=NO_VALUE,
+            yes=NO_VALUE,
+            show_channel_urls=NO_VALUE,
+            channel=(channels or []),
+            *pkg_ids,
+        )
         return mycmd.batch()
